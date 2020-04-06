@@ -1,6 +1,7 @@
 ### Time table management task
-> Basic Login App, Back end - Node.js, Mongodb, Front end - React.js <br />
-> User view for log-in & log-out functions and give view access to Admin
+> Class wise table<br />
+> Occupied periods filled with Co-teachers<br />
+> Minimum extra co-teachers needed to solve<br />
 
 ### Installation
 Mongodb Atlas used for storage, no need to configure mongodb
