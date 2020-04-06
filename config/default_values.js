@@ -20,13 +20,3 @@ module.exports.period_time = [
   "3:00 PM",
   "4:00 PM"
 ];
-
-module.exports.co_subjects = [
-  "Co-Hindi",
-  "Co-Maths",
-  "Co-Science",
-  "Co-English",
-  "Co-Kannada"
-];
-
-module.exports.max_free_period = 4;

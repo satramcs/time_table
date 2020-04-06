@@ -3,10 +3,9 @@ const {
   clases,
   week_days,
   period_time,
-  co_subjects,
-  max_free_period
 } = require("../config/default_values");
 
+/*Change to class wise order*/
 module.exports.change_to_class = get_data => {
   var cls_tbl = {};
 
@@ -33,7 +32,8 @@ module.exports.change_to_class = get_data => {
   return cls_tbl;
 };
 
-module.exports.convert_table = (get_data, is_co) => {
+/*Convert to table format*/
+module.exports.convert_table = (get_data, is_co, get_co) => {
   let tmplt = ``;
   let days_tmplt = ``;
 
@@ -51,26 +51,17 @@ module.exports.convert_table = (get_data, is_co) => {
       tmplt += `<tr>`;
       tmplt += `<td>${period}</td>`;
 
-      if (is_co) {
-        //   To fill co-teacher with free period
-        var vals = Object.values(get_data[cls][period]);
-        var free_count = 0;
-        if (vals[0] != "-") {
-          free_count = max_free_period;
-        } else {
-          for (val of vals) {
-            if (val == "-") {
-              free_count++;
-            }
-          }
-        }
-      }
       for (day of week_days) {
         var cur_sub = get_data[cls][period][day];
-        if (cur_sub == "-" && is_co) {
-          tmplt += `<td>${co_subjects[free_count]}</td>`;
-          free_count--;
+        if (cur_sub == "-") {
+          tmplt += `<td>${cur_sub}</td>`;
         } else {
+          if(is_co && get_co[period][day]["co_teachers"].length){
+            cur_sub += ` / ${get_co[period][day]["co_teachers"][0]}`;
+            get_co[period][day]["co_teachers"].shift();
+          }else if(is_co){
+            get_co[period][day]["extra_teachers"]++;
+          }
           tmplt += `<td>${cur_sub}</td>`;
         }
       }
@@ -78,5 +69,67 @@ module.exports.convert_table = (get_data, is_co) => {
     }
     tmplt += `</table>`;
   }
-  return tmplt;
+  if(is_co)
+    return {"template":tmplt, "get_co":get_co};
+  else
+    return {"template":tmplt};
 };
+
+/*Get free teachers to assign as co-teacher*/
+module.exports.get_co_teachers = (get_data) => {
+  var occupieds = {};
+  for (cls of clases) {
+    for (period of period_time) {
+      if (occupieds[period] == undefined) {
+        occupieds[period] = {};
+      }
+      for (day of week_days) {
+
+        if (occupieds[period][day] == undefined) {
+          occupieds[period][day] = {"assigned_count":"0","assigned_teachers":[],"can_assign":"0", "co_teachers":[],"extra_teachers":0};
+        }
+
+        if(get_data[cls][period][day] != '-'){
+          occupieds[period][day]["assigned_count"]++;
+          occupieds[period][day]["assigned_teachers"].push(get_data[cls][period][day]);
+        }
+      }
+    }
+  }
+
+  /*to asign co*/
+  let total_teachers = subjects.length;
+  for (period of period_time) {
+    for (day of week_days) {
+      let assigned_count = occupieds[period][day]["assigned_count"];
+      let assigned_teachers = occupieds[period][day]["assigned_teachers"];
+      let can_assign = 0;
+      let t_count = total_teachers - assigned_count;
+      if( t_count > assigned_count && t_count != 0)
+        can_assign = assigned_count;
+      else if(t_count != 0)
+        can_assign = t_count;
+      occupieds[period][day]["can_assign"] = can_assign;
+
+      for (sub of subjects) {
+        if(!assigned_teachers.includes(sub)){
+          if(occupieds[period][day]["co_teachers"].length < can_assign)
+            occupieds[period][day]["co_teachers"].push(sub);
+        }
+      }
+    }
+  }
+  return occupieds;
+}
+
+/*Calculate minumum extra co-teachers*/
+module.exports.calculate_extra_co = (get_co) => {
+  let co_teacher_need = 0;
+  for (period of period_time) {
+    for (day of week_days) {
+      if(get_co[period][day]["extra_teachers"] > co_teacher_need)
+        co_teacher_need = get_co[period][day]["extra_teachers"];
+    }
+  }
+  return co_teacher_need;
+}
